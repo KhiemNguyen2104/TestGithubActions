@@ -9,13 +9,13 @@ export class AuthController {
 
 
     @ApiOperation({ summary: "This is the login function" })
-    @Post()
+    @Post('login')
     async login() {
         return this.authService.getLogin()
     }
 
     @ApiOperation({ summary: "This is the signup function" })
-    @Post()
+    @Post('signup')
     async signup() {
         return this.authService.getSignup()
     }
