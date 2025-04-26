@@ -21,7 +21,7 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DB_URL }}
         run: 
-          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> .env
+          echo "DATABASE_URL=${{ secrets.DB_URL }}" >> .env
           cat .env
 
       - name: Install dependencies
@@ -32,6 +32,9 @@ jobs:
 
       - name: Build project
         run: NODE_OPTIONS="--max-old-space-size=4096" npm run build
+
+      - name: Install PM2
+        run: npm install -g pm2
 
       - name: Restart with PM2
         run: |
