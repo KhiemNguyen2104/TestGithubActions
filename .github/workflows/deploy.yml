@@ -20,8 +20,10 @@ jobs:
       - name: Add environment variables
         env:
           DATABASE_URL: ${{ secrets.DB_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: 
           echo "DATABASE_URL=${{ secrets.DB_URL }}" >> .env
+          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
           cat .env
 
       - name: Install dependencies
