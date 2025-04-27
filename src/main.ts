@@ -9,6 +9,7 @@ async function bootstrap() {
     .setTitle('Test')
     .setDescription('The Test API description')
     .setVersion('1.1')
+    .addBearerAuth()
     .addTag('Auth')
     .addTag('Hello')
     .build();
