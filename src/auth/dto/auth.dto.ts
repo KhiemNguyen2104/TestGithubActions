@@ -29,3 +29,15 @@ export class SignupDto {
     @ApiProperty({type: String, description: "Password for the register", required: true, default: "123456"})
     password: string
 }
+
+export class RefreshTokenDto {
+    @IsNotEmpty()
+    @IsString()
+    @ApiProperty({type: String, description: "User ID", required: true, default: "2211573"})
+    userId: string
+
+    @IsNotEmpty()
+    @IsString()
+    @ApiProperty({type: String, description: "User name", required: true, default: "Nguyen Phuc Gia Khiem"})
+    userName: string
+}

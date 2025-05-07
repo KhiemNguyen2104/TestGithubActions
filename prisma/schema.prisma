@@ -12,6 +12,8 @@ model User {
 
     hash_key String
 
+    refresh_token String
+
     userName String
 }
 

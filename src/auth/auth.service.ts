@@ -10,7 +10,7 @@ export class AuthService {
 
 
     async getLogin(dto: LoginDto) {
-        const user = await this.prisma.user.findUnique({
+        let user = await this.prisma.user.findUnique({
             where: {
                 userId: dto.userId
             }
@@ -26,46 +26,105 @@ export class AuthService {
         if (!isMatch) {
             throw new ForbiddenException("Password is wrong");
         }
-        const token = await this.signToken(user.userId, user.userName);
-        return { token: token };
+
+        const access_token = await this.signAccessToken(user.userId, user.userName);
+        const refresh_token = await this.refreshToken(user.userId, user.userName);
+
+        return { access_token: access_token, refresh_token: refresh_token };
     }
 
     async getSignup(dto: SignupDto) {
         const hash_key = await argon.hash(dto.password)
+
+        const access_token = await this.signAccessToken(dto.userId, dto.userName);
 
         try {
             const user = await this.prisma.user.create({
                 data: {
                     userId: dto.userId,
                     userName: dto.userName,
+                    refresh_token: "temp",
                     hash_key: hash_key
                 }
             })
 
-            return await this.signToken(user.userId, user.userName)
+        const refresh_token = await this.refreshToken(dto.userId, dto.userName);
+
+            return { access_token: access_token, refresh_token: refresh_token };
         } catch (err) {
             throw new ForbiddenException(`Cannot register for a new account: ${err}`)
         }
     }
 
-    async signToken(user_id: string, user_name: string): Promise<{ access_token: string }> {
+    async signAccessToken(user_id: string, user_name: string): Promise<string> {
         const payload = {
             sub: user_id,
             user_name,
         }
 
-        const secret = process.env.JWT_SECRET;
+        const secret = process.env.ACCESS_TOKEN_SECRET;
 
         try {
             const token = await this.jwt.signAsync(payload, {
-                expiresIn: '30m',
+                expiresIn: '15s',
                 secret: secret,
             });
 
-            return { access_token: token };
+            return token;
         }
         catch (error) {
             throw new Error('Error signing the token');
+        }
+    }
+
+    async reSignAccessToken(refresh_token: string): Promise<string> {
+        try {
+            const payload = (await this.jwt.verifyAsync(refresh_token, {
+              secret: process.env.REFRESH_TOKEN_SECRET,
+            }))
+      
+            return await this.signAccessToken(payload.sub, payload.email);
+        } catch (err) {
+            throw new ForbiddenException(err);
+        }
+    }
+
+    async refreshToken(user_id: string, user_name: string): Promise<string> {
+        let user = await this.prisma.user.findUnique({
+            where: {
+                userId: user_id
+            }
+        })
+
+        if (!user) {
+            throw new ForbiddenException("Cannot find the user")
+        }
+
+        const secret = process.env.REFRESH_TOKEN_SECRET
+
+        const payload = {
+            sub: user_id,
+            user_name
+        }
+
+        try {
+            const token = await this.jwt.signAsync(payload, {
+                expiresIn: '1h',
+                secret: secret
+            })
+
+            user = await this.prisma.user.update({
+                where: {
+                    userId: user_id
+                },
+                data: {
+                    refresh_token: token
+                }
+            })
+
+            return token
+        } catch (err) {
+            throw new ForbiddenException(err)
         }
     }
 }
