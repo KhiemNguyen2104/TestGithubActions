@@ -6,25 +6,28 @@ import * as argon from 'argon2';
 
 @Injectable()
 export class AuthService {
-    constructor(private prisma: PrismaService, private jwt: JwtService) {}
+    constructor(private prisma: PrismaService, private jwt: JwtService) { }
 
 
     async getLogin(dto: LoginDto) {
-        let user = await this.prisma.user.findUnique({
+        let users = await this.prisma.user.findMany({
             where: {
-                userId: dto.userId
+                userName: dto.userName
             }
         })
 
-        if (!user) {
-            throw new ForbiddenException("User not found");
+        if (!users || users.length == 0) {
+            throw new ForbiddenException("User name or password is wrong");
         }
 
-        const hashPassword = user.hash_key;
+        // console.log(users)
 
-        const isMatch = await argon.verify(hashPassword, dto.password);
-        if (!isMatch) {
-            throw new ForbiddenException("Password is wrong");
+        const user = users.filter(async (rec) => await argon.verify(rec.hash_key, dto.password + "_" + dto.userName + "_" + rec.userId))[0]
+
+        // console.log(user)
+
+        if (!user) {
+            throw new ForbiddenException("User name or password is wrong");
         }
 
         const access_token = await this.signAccessToken(user.userId, user.userName);
@@ -34,7 +37,7 @@ export class AuthService {
     }
 
     async getSignup(dto: SignupDto) {
-        const hash_key = await argon.hash(dto.password)
+        const hash_key = await argon.hash(dto.password + "_" + dto.userName + "_" + dto.userId)
 
         const access_token = await this.signAccessToken(dto.userId, dto.userName);
 
@@ -48,7 +51,7 @@ export class AuthService {
                 }
             })
 
-        const refresh_token = await this.refreshToken(dto.userId, dto.userName);
+            const refresh_token = await this.refreshToken(dto.userId, dto.userName);
 
             return { access_token: access_token, refresh_token: refresh_token };
         } catch (err) {
@@ -80,9 +83,9 @@ export class AuthService {
     async reSignAccessToken(refresh_token: string): Promise<string> {
         try {
             const payload = (await this.jwt.verifyAsync(refresh_token, {
-              secret: process.env.REFRESH_TOKEN_SECRET,
+                secret: process.env.REFRESH_TOKEN_SECRET,
             }))
-      
+
             return await this.signAccessToken(payload.sub, payload.email);
         } catch (err) {
             throw new ForbiddenException(err);
