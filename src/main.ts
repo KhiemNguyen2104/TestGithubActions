@@ -14,6 +14,13 @@ async function bootstrap() {
     .addTag('Hello')
     .build();
 
+  app.enableCors({
+    origin: '*',// `http://localhost:${process.env.PORT}`, // Allow requests from this origin
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE', // Allowed HTTP methods
+    allowedHeaders: 'Content-Type, Authorization', // Allowed headers
+    credentials: true, // Allow credentials like cookies
+  });
+
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
